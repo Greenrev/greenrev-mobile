@@ -194,6 +194,13 @@ class _MainShellState extends State<MainShell> {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
 
+    if (auth.sessionExpired) {
+      auth.acknowledgeSessionExpired();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showGrSnack(context, 'Your session has expired. Please sign in again.', error: true);
+      });
+    }
+
     return SafeArea(
       child: Align(
         alignment: Alignment.topRight,

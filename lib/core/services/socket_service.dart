@@ -44,6 +44,12 @@ class SocketService {
     });
   }
 
+  /// Reconnect with a renewed access token (the old one is rejected after it expires).
+  void reconnect(String token) {
+    disconnect();
+    connect(token);
+  }
+
   void disconnect() {
     if (socket != null) {
       socket!.disconnect();

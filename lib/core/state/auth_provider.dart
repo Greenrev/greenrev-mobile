@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import '../network/api_client.dart';
 import '../services/socket_service.dart';
@@ -7,18 +6,35 @@ import '../services/socket_service.dart';
 class AuthProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
   UserModel? _user;
-  String? _token;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _sessionExpired = false;
 
   UserModel? get user => _user;
-  String? get token => _token;
+  String? get token => _apiClient.accessToken;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isLoggedIn => _token != null && _user != null;
+  bool get isLoggedIn => _apiClient.hasSession && _user != null;
+
+  /// True once after the server rejected the saved session; the UI shows a notice and resets it.
+  bool get sessionExpired => _sessionExpired;
+  void acknowledgeSessionExpired() => _sessionExpired = false;
 
   AuthProvider() {
+    _apiClient.onSessionExpired = _handleSessionExpired;
+    // Keep the realtime socket on the current token after each refresh.
+    _apiClient.addAccessTokenListener((token) {
+      if (token != null && _user != null) SocketService().reconnect(token);
+    });
     loadPersistedSession();
+  }
+
+  void _handleSessionExpired() {
+    if (_user == null) return;
+    _user = null;
+    _sessionExpired = true;
+    SocketService().disconnect();
+    notifyListeners();
   }
 
   void clearError() {
@@ -30,24 +46,21 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final persistedToken = prefs.getString('access_token');
-      if (persistedToken != null) {
-        _token = persistedToken;
-        _apiClient.setToken(_token);
-        
-        // Fetch fresh user data
+      await _apiClient.restoreSession();
+      if (_apiClient.hasSession) {
+        // An expired access token is renewed automatically by ApiClient.
         final response = await _apiClient.get('/api/v1/auth/me');
         if (response != null && response['user'] != null) {
           _user = UserModel.fromJson(response['user']);
-          SocketService().connect(_token!);
+          SocketService().connect(_apiClient.accessToken!);
         } else {
-          // Token is invalid/expired
           await clearSession();
         }
       }
-    } catch (e) {
-      // Failed to load session
+    } on ApiException catch (e) {
+      // Offline at launch: keep the saved session so the next launch can restore it.
+      if (e.code != 'NETWORK_ERROR') await clearSession();
+    } catch (_) {
       await clearSession();
     } finally {
       _isLoading = false;
@@ -66,20 +79,19 @@ class AuthProvider extends ChangeNotifier {
         requiresAuth: false,
       );
       if (response != null && response is Map<String, dynamic>) {
-        final rawToken = response['accessToken'] ?? response['token'] ?? response['csrfToken'];
-        _token = rawToken?.toString();
+        final token = (response['accessToken'] ?? response['token'])?.toString();
 
         if (response['user'] != null && response['user'] is Map<String, dynamic>) {
           _user = UserModel.fromJson(response['user']);
         }
 
-        if (_token != null && _token!.isNotEmpty) {
-          _apiClient.setToken(_token);
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('access_token', _token!);
-          SocketService().connect(_token!);
+        if (token != null && token.isNotEmpty) {
+          // The refresh token arrives as a cookie on this response; ApiClient has already kept it.
+          _apiClient.setTokens(accessToken: token);
+          _sessionExpired = false;
+          SocketService().connect(token);
         }
-        return _user != null && _token != null;
+        return _user != null && token != null && token.isNotEmpty;
       }
       return false;
     } catch (e) {
@@ -240,11 +252,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> clearSession() async {
-    _token = null;
     _user = null;
-    _apiClient.setToken(null);
     SocketService().disconnect();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
+    await _apiClient.clearTokens();
   }
 }
