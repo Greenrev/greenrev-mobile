@@ -69,7 +69,8 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   _ServiceCard(
                     title: 'Parts & Performance',
-                    description: 'Enhance your car with highest-grade components and custom accessories.',
+                    description:
+                        'Enhance your car with highest-grade components and custom accessories.',
                     image: '/images/home/parts.png',
                     cta: 'Browse Parts',
                     onTap: () => onSelectTab?.call(HomeTabs.parts),
@@ -77,7 +78,8 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   _ServiceCard(
                     title: 'Expert Care',
-                    description: 'Access our elite network of mechanics and specialized service centers.',
+                    description:
+                        'Access our elite network of mechanics and specialized service centers.',
                     image: '/images/home/expert.jpeg',
                     cta: 'Find an Expert',
                     onTap: () => onSelectTab?.call(HomeTabs.experts),
@@ -98,7 +100,11 @@ class HomeScreen extends StatelessWidget {
                     image: '/images/home/compare.jpeg',
                     onTap: () {
                       if (context.read<CompareProvider>().count > 0) {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CompareScreen()));
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CompareScreen(),
+                          ),
+                        );
                       } else {
                         onSelectTab?.call(HomeTabs.showroom);
                       }
@@ -133,7 +139,11 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 28),
             for (var i = 0; i < _pillars.length; i++)
-              _PillarRow(index: i + 1, title: _pillars[i].$1, description: _pillars[i].$2),
+              _PillarRow(
+                index: i + 1,
+                title: _pillars[i].$1,
+                description: _pillars[i].$2,
+              ),
             const SizedBox(height: 56),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -143,8 +153,12 @@ class HomeScreen extends StatelessWidget {
                   const GrHeadline('Delivered', muted: 'anywhere.', size: 40),
                   const SizedBox(height: 12),
                   const Text(
-                    'Lagos · Nairobi · Johannesburg',
-                    style: TextStyle(color: AppTheme.textSubtle, fontSize: 13, letterSpacing: 1),
+                    'Nigeria',
+                    style: TextStyle(
+                      color: AppTheme.textSubtle,
+                      fontSize: 13,
+                      letterSpacing: 1,
+                    ),
                   ),
                   const SizedBox(height: 28),
                   GrPrimaryButton(
@@ -174,7 +188,10 @@ class _Hero extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image(image: safeImageProvider('/images/home/showroom.jpeg'), fit: BoxFit.cover),
+          Image(
+            image: safeImageProvider('/images/home/showroom.jpeg'),
+            fit: BoxFit.cover,
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -202,13 +219,20 @@ class _Hero extends StatelessWidget {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    for (final (i, word) in const ['Discover', 'Compare', 'Connect'].indexed) ...[
+                    for (final (i, word) in const [
+                      'Discover',
+                      'Compare',
+                      'Connect',
+                    ].indexed) ...[
                       if (i > 0)
                         Container(
                           width: 4,
                           height: 4,
                           margin: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.accent,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       Text(
                         word.toUpperCase(),
@@ -225,10 +249,18 @@ class _Hero extends StatelessWidget {
                 const SizedBox(height: 16),
                 const Text(
                   'Connecting buyers with independent vehicle dealers, automotive parts vendors, mechanics and other automotive service providers.',
-                  style: TextStyle(color: AppTheme.textSubtle, fontSize: 14, height: 1.5),
+                  style: TextStyle(
+                    color: AppTheme.textSubtle,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 28),
-                GrPrimaryButton(label: 'Explore GreenRev', icon: Icons.arrow_forward, onPressed: onExplore),
+                GrPrimaryButton(
+                  label: 'Explore GreenRev',
+                  icon: Icons.arrow_forward,
+                  onPressed: onExplore,
+                ),
               ],
             ),
           ),
@@ -256,14 +288,21 @@ class _ConciergeCard extends StatelessWidget {
               color: AppTheme.accent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.smart_toy_outlined, color: AppTheme.accent, size: 22),
+            child: const Icon(
+              Icons.smart_toy_outlined,
+              color: AppTheme.accent,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 14),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('GreenRev Concierge', style: TextStyle(color: Colors.white, fontSize: 16)),
+                Text(
+                  'GreenRev Concierge',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
                 SizedBox(height: 4),
                 Text(
                   'AI expert advice on vehicles, specs and parts.',
@@ -313,7 +352,11 @@ class _ServiceCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [Colors.black, Colors.black.withValues(alpha: 0.2), Colors.transparent],
+                    colors: [
+                      Colors.black,
+                      Colors.black.withValues(alpha: 0.2),
+                      Colors.transparent,
+                    ],
                   ),
                   border: Border.all(color: AppTheme.hairline),
                   borderRadius: BorderRadius.circular(28),
@@ -325,11 +368,22 @@ class _ServiceCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 30, height: 1.05)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        height: 1.05,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     Text(
                       description,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14, height: 1.45),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 14,
+                        height: 1.45,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -344,7 +398,11 @@ class _ServiceCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.arrow_outward, color: Colors.white, size: 14),
+                        const Icon(
+                          Icons.arrow_outward,
+                          color: Colors.white,
+                          size: 14,
+                        ),
                       ],
                     ),
                   ],
@@ -394,11 +452,29 @@ class _FeatureCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontSize: 34, height: 1.0)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 34,
+                    height: 1.0,
+                  ),
+                ),
                 const SizedBox(height: 14),
-                Text(description, style: const TextStyle(color: AppTheme.textSubtle, fontSize: 14, height: 1.5)),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    color: AppTheme.textSubtle,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
                 const SizedBox(height: 22),
-                GrSecondaryButton(label: cta, onPressed: onTap, icon: Icons.arrow_outward),
+                GrSecondaryButton(
+                  label: cta,
+                  onPressed: onTap,
+                  icon: Icons.arrow_outward,
+                ),
               ],
             ),
           ),
@@ -412,14 +488,20 @@ class _PillarRow extends StatelessWidget {
   final int index;
   final String title;
   final String description;
-  const _PillarRow({required this.index, required this.title, required this.description});
+  const _PillarRow({
+    required this.index,
+    required this.title,
+    required this.description,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.symmetric(vertical: 22),
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: AppTheme.border))),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppTheme.border)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -427,14 +509,29 @@ class _PillarRow extends StatelessWidget {
             children: [
               Text(
                 index.toString().padLeft(2, '0'),
-                style: const TextStyle(color: AppTheme.accent, fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: AppTheme.accent,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(width: 14),
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 24)),
+              Text(
+                title,
+                style: const TextStyle(color: Colors.white, fontSize: 24),
+              ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(description, style: const TextStyle(color: AppTheme.textSubtle, fontSize: 14, height: 1.55)),
+          Text(
+            description,
+            style: const TextStyle(
+              color: AppTheme.textSubtle,
+              fontSize: 14,
+              height: 1.55,
+            ),
+          ),
         ],
       ),
     );

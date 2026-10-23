@@ -57,7 +57,7 @@ class _MainShellState extends State<MainShell> {
   Widget _buildTab(int index) {
     switch (index) {
       case 0:
-        return HomeScreen(onSelectTab: _select);
+      // return HomeScreen(onSelectTab: _select);
       case 1:
         return const ShowroomScreen();
       case 2:
@@ -78,7 +78,8 @@ class _MainShellState extends State<MainShell> {
           IndexedStack(
             index: _currentIndex,
             children: [
-              for (var i = 0; i < 5; i++) _visited.contains(i) ? _buildTab(i) : const SizedBox.shrink(),
+              for (var i = 0; i < 5; i++)
+                _visited.contains(i) ? _buildTab(i) : const SizedBox.shrink(),
             ],
           ),
           _buildAccountButton(context),
@@ -120,11 +121,31 @@ class _MainShellState extends State<MainShell> {
               ),
               child: Row(
                 children: [
-                  _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
-                  _buildNavItem(1, Icons.directions_car_outlined, Icons.directions_car, 'Showroom'),
-                  _buildNavItem(2, Icons.settings_outlined, Icons.settings, 'Parts'),
-                  _buildNavItem(3, Icons.build_outlined, Icons.build, 'Experts'),
-                  _buildNavItem(4, Icons.shopping_bag_outlined, Icons.shopping_bag, 'Selection'),
+                  // _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
+                  _buildNavItem(
+                    1,
+                    Icons.directions_car_outlined,
+                    Icons.directions_car,
+                    'Showroom',
+                  ),
+                  _buildNavItem(
+                    2,
+                    Icons.settings_outlined,
+                    Icons.settings,
+                    'Parts',
+                  ),
+                  _buildNavItem(
+                    3,
+                    Icons.build_outlined,
+                    Icons.build,
+                    'Experts',
+                  ),
+                  _buildNavItem(
+                    4,
+                    Icons.shopping_bag_outlined,
+                    Icons.shopping_bag,
+                    'Selection',
+                  ),
                 ],
               ),
             ),
@@ -134,7 +155,12 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData outlineIcon, IconData solidIcon, String label) {
+  Widget _buildNavItem(
+    int index,
+    IconData outlineIcon,
+    IconData solidIcon,
+    String label,
+  ) {
     final isSelected = _currentIndex == index;
     final cartCount = context.watch<CartProvider>().items.length;
 
@@ -174,13 +200,23 @@ class _MainShellState extends State<MainShell> {
                 top: 10,
                 right: 14,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 1,
+                  ),
                   constraints: const BoxConstraints(minWidth: 16),
-                  decoration: BoxDecoration(color: AppTheme.accent, borderRadius: BorderRadius.circular(999)),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                   child: Text(
                     cartCount > 99 ? '99+' : '$cartCount',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -197,7 +233,12 @@ class _MainShellState extends State<MainShell> {
     if (auth.sessionExpired) {
       auth.acknowledgeSessionExpired();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) showGrSnack(context, 'Your session has expired. Please sign in again.', error: true);
+        if (mounted)
+          showGrSnack(
+            context,
+            'Your session has expired. Please sign in again.',
+            error: true,
+          );
       });
     }
 
@@ -208,13 +249,18 @@ class _MainShellState extends State<MainShell> {
           padding: const EdgeInsets.only(top: 10, right: 16),
           child: user == null
               ? GestureDetector(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginScreen())),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(999),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(999),
@@ -222,7 +268,12 @@ class _MainShellState extends State<MainShell> {
                         ),
                         child: const Text(
                           'SIGN IN',
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          ),
                         ),
                       ),
                     ),
@@ -237,11 +288,17 @@ class _MainShellState extends State<MainShell> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.black.withValues(alpha: 0.5),
-                      border: Border.all(color: AppTheme.accent.withValues(alpha: 0.4)),
+                      border: Border.all(
+                        color: AppTheme.accent.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Text(
                       _initial(user),
-                      style: const TextStyle(color: AppTheme.accent, fontSize: 15, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: AppTheme.accent,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -251,16 +308,26 @@ class _MainShellState extends State<MainShell> {
   }
 
   String _initial(UserModel user) {
-    final source = (user.name?.trim().isNotEmpty ?? false) ? user.name!.trim() : user.email;
+    final source = (user.name?.trim().isNotEmpty ?? false)
+        ? user.name!.trim()
+        : user.email;
     return source.isEmpty ? '?' : source.substring(0, 1).toUpperCase();
   }
 
   Future<void> _openWebDashboard(String path) async {
-    final ok = await launchUrl(Uri.parse('${Env.siteBaseUrl}$path'), mode: LaunchMode.externalApplication);
-    if (!ok && mounted) showGrSnack(context, 'Could not open the website.', error: true);
+    final ok = await launchUrl(
+      Uri.parse('${Env.siteBaseUrl}$path'),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!ok && mounted)
+      showGrSnack(context, 'Could not open the website.', error: true);
   }
 
-  void _showAccountSheet(BuildContext context, AuthProvider auth, UserModel user) {
+  void _showAccountSheet(
+    BuildContext context,
+    AuthProvider auth,
+    UserModel user,
+  ) {
     final roleLabel = _roleLabels[user.role] ?? user.role;
     final isClient = user.role == 'customer';
     final dashboardPath = switch (user.role) {
@@ -298,7 +365,10 @@ class _MainShellState extends State<MainShell> {
                       width: 36,
                       height: 4,
                       margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
                   Row(
@@ -310,19 +380,39 @@ class _MainShellState extends State<MainShell> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppTheme.accent.withValues(alpha: 0.1),
-                          border: Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: AppTheme.accent.withValues(alpha: 0.3),
+                          ),
                         ),
-                        child: Text(_initial(user),
-                            style: const TextStyle(color: AppTheme.accent, fontSize: 20, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          _initial(user),
+                          style: const TextStyle(
+                            color: AppTheme.accent,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(user.name ?? 'Account', style: const TextStyle(color: Colors.white, fontSize: 18)),
+                            Text(
+                              user.name ?? 'Account',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text(user.email, style: const TextStyle(color: AppTheme.textSubtle, fontSize: 12)),
+                            Text(
+                              user.email,
+                              style: const TextStyle(
+                                color: AppTheme.textSubtle,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -333,12 +423,21 @@ class _MainShellState extends State<MainShell> {
                   Divider(color: AppTheme.hairline, height: 1),
                   const SizedBox(height: 8),
                   if (isClient)
-                    _menuItem(Icons.receipt_long_outlined, 'My Requests', () => go(const AcquisitionsScreen()))
+                    _menuItem(
+                      Icons.receipt_long_outlined,
+                      'My Requests',
+                      () => go(const AcquisitionsScreen()),
+                    )
                   else if (dashboardPath != null)
-                    _menuItem(Icons.dashboard_outlined, 'Dashboard', () {
-                      Navigator.pop(sheetContext);
-                      _openWebDashboard(dashboardPath);
-                    }, trailing: Icons.open_in_new),
+                    _menuItem(
+                      Icons.dashboard_outlined,
+                      'Dashboard',
+                      () {
+                        Navigator.pop(sheetContext);
+                        _openWebDashboard(dashboardPath);
+                      },
+                      trailing: Icons.open_in_new,
+                    ),
                   _menuItem(Icons.storefront_outlined, 'Browse Boutique', () {
                     Navigator.pop(sheetContext);
                     _select(HomeTabs.showroom);
@@ -346,21 +445,34 @@ class _MainShellState extends State<MainShell> {
                   _menuItem(
                     Icons.chat_bubble_outline,
                     'My Messages',
-                    () => go(MessagesScreen(onBrowseExperts: () => _select(HomeTabs.experts))),
+                    () => go(
+                      MessagesScreen(
+                        onBrowseExperts: () => _select(HomeTabs.experts),
+                      ),
+                    ),
                   ),
                   _menuItem(
                     Icons.info_outline,
                     'About GreenRev',
-                    () => go(AboutScreen(onExplore: () => _select(HomeTabs.showroom))),
+                    () => go(
+                      AboutScreen(onExplore: () => _select(HomeTabs.showroom)),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Divider(color: AppTheme.hairline, height: 1),
                   const SizedBox(height: 8),
-                  _menuItem(Icons.description_outlined, 'Terms of Use', () => go(const LegalScreen(document: termsOfUse)),
-                      muted: true),
-                  _menuItem(Icons.privacy_tip_outlined, 'Privacy Policy',
-                      () => go(const LegalScreen(document: privacyPolicy)),
-                      muted: true),
+                  _menuItem(
+                    Icons.description_outlined,
+                    'Terms of Use',
+                    () => go(const LegalScreen(document: termsOfUse)),
+                    muted: true,
+                  ),
+                  _menuItem(
+                    Icons.privacy_tip_outlined,
+                    'Privacy Policy',
+                    () => go(const LegalScreen(document: privacyPolicy)),
+                    muted: true,
+                  ),
                   const SizedBox(height: 8),
                   Divider(color: AppTheme.hairline, height: 1),
                   const SizedBox(height: 8),
@@ -390,7 +502,9 @@ class _MainShellState extends State<MainShell> {
     bool muted = false,
     IconData? trailing,
   }) {
-    final c = color ?? (muted ? Colors.white54 : Colors.white.withValues(alpha: 0.85));
+    final c =
+        color ??
+        (muted ? Colors.white54 : Colors.white.withValues(alpha: 0.85));
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -398,10 +512,20 @@ class _MainShellState extends State<MainShell> {
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, color: color ?? (muted ? Colors.white38 : AppTheme.accent), size: 18),
+            Icon(
+              icon,
+              color: color ?? (muted ? Colors.white38 : AppTheme.accent),
+              size: 18,
+            ),
             const SizedBox(width: 14),
-            Expanded(child: Text(label, style: TextStyle(color: c, fontSize: muted ? 14 : 16))),
-            if (trailing != null) Icon(trailing, color: Colors.white30, size: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(color: c, fontSize: muted ? 14 : 16),
+              ),
+            ),
+            if (trailing != null)
+              Icon(trailing, color: Colors.white30, size: 14),
           ],
         ),
       ),
