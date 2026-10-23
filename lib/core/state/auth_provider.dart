@@ -203,6 +203,31 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Sends a time-limited reset link; the link itself is completed on the website.
+  Future<bool> forgotPassword(String email) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _apiClient.post(
+        '/api/v1/auth/password/forgot',
+        body: {'email': email},
+        requiresAuth: false,
+      );
+      return true;
+    } catch (e) {
+      if (e is ApiException) {
+        _errorMessage = e.message;
+      } else {
+        _errorMessage = e.toString();
+      }
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();

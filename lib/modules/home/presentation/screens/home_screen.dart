@@ -1,361 +1,160 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../../core/state/compare_provider.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/image_helper.dart';
-import '../../../acquisitions/presentation/screens/acquisitions_screen.dart';
+import '../../../../core/widgets/gr_ui.dart';
+import '../../../concierge/presentation/concierge_sheet.dart';
 import '../../../inquiries/presentation/widgets/inquiry_modal.dart';
+import '../../../showroom/presentation/screens/compare_screen.dart';
 
+/// Tab indexes in [MainShell] that Home links into.
+class HomeTabs {
+  static const showroom = 1;
+  static const parts = 2;
+  static const experts = 3;
+}
+
+/// Mirrors the website's landing page: hero → services grid → compare / relinquish
+/// → philosophy → "Delivered anywhere." inquiry.
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final ValueChanged<int>? onSelectTab;
+  const HomeScreen({super.key, this.onSelectTab});
 
-  void _openAiConcierge(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const AiConciergeSheet(),
-    );
-  }
+  static const _pillars = [
+    (
+      'Quality',
+      'Every machine at GreenRev undergoes a rigorous 300-point performance and telemetry audit. We deal in absolute technical mastery, ensuring every vehicle in our collection delivers peak efficiency and surgical handling on every curve.',
+    ),
+    (
+      'Exclusivity',
+      'Access to high-performance cars and custom modifications. Our global network secures limited-run vehicles for a select clientele that demands nothing less than the extraordinary.',
+    ),
+    (
+      'Innovation',
+      "We are the architects of the next automotive renaissance. From advanced aerodynamics to high-performance component integration, we don't just follow industry trends—we set the pace for the future of the road.",
+    ),
+    (
+      'Performance',
+      'Speed is our primary directive. We recalibrate the boundaries of what is possible, delivering instant torque and unprecedented power. Every machine we touch is optimized for dominance and engineered for the ultimate drive.',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Cinematic HUD Hero Header
-            Stack(
-              children: [
-                Container(
-                  height: size.height * 0.55,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: safeImageProvider('/images/home/showroom.jpeg'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                // Gradient overlay
-                Container(
-                  height: size.height * 0.55,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.4),
-                        Colors.black.withValues(alpha: 0.2),
-                        AppTheme.background,
-                      ],
-                    ),
-                  ),
-                ),
-                // HUD Callouts overlay
-                Positioned(
-                  left: 24,
-                  bottom: 32,
-                  right: 24,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.accent,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'THE SHOWROOM',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2.0,
-                              color: AppTheme.accent,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'AVATR 12 GT',
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                              fontSize: 36,
-                              letterSpacing: -1.0,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'QUANTUM SILVER SPECIFICATION',
-                        style: TextStyle(
-                          fontSize: 11,
-                          letterSpacing: 1.5,
-                          color: AppTheme.textSubtle,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Stats Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildHudStat('3.9s', '0 - 100 KM/H'),
-                          _buildHudStat('578 HP', 'POWER'),
-                          _buildHudStat('650 Nm', 'TORQUE'),
-                          _buildHudStat('220 KM/H', 'LIMIT'),
-                        ],
-                      )
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            // AI Concierge CTA
+            _Hero(onExplore: () => onSelectTab?.call(HomeTabs.showroom)),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-              child: GestureDetector(
-                onTap: () => _openAiConcierge(context),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: AppTheme.glassBoxDecoration(),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        backgroundColor: AppTheme.accent,
-                        child: Icon(Icons.psychology_outlined, color: Colors.black),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'AI CONCIERGE ASSISTANT',
-                              style: TextStyle(
-                                fontSize: 11,
-                                letterSpacing: 1.5,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.accent,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Ask anything about specifications or configurations',
-                              style: TextStyle(fontSize: 12, color: AppTheme.textSubtle),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.accent.withValues(alpha: 0.7)),
-                    ],
-                  ),
-                ),
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: _ConciergeCard(onTap: () => ConciergeSheet.show(context)),
             ),
-
-            // Quick Actions: Relinquish & Inquiry
+            const SizedBox(height: 40),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const AcquisitionsScreen()),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: AppTheme.glassBoxDecoration(color: AppTheme.accent.withValues(alpha: 0.05)),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.swap_horiz, color: AppTheme.accent, size: 20),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('MY REQUESTS', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                                  Text('Track acquisitions', style: TextStyle(color: AppTheme.textSubtle, fontSize: 10)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        InquiryModalSheet.show(context);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: AppTheme.glassBoxDecoration(color: Colors.white.withValues(alpha: 0.03)),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.support_agent, color: AppTheme.accent, size: 20),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('GENERAL INQUIRY', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                                  Text('Custom Requests', style: TextStyle(color: AppTheme.textSubtle, fontSize: 10)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Section: Ecosystem Services
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Text(
-                'SERVICES',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2.0,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-
-            // Services Grid Cards
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  _buildServiceCard(
-                    context,
-                    'THE SHOWROOM',
-                    'Explore vehicle listings from independent dealers and sellers.',
-                    '/images/home/showroom.jpeg',
+                  _ServiceCard(
+                    title: 'The Showroom',
+                    description:
+                        'A curated collection of world-class machines, meticulously selected for the discerning collector.',
+                    image: '/images/home/showroom.jpeg',
+                    cta: 'Enter Showroom',
+                    height: 340,
+                    onTap: () => onSelectTab?.call(HomeTabs.showroom),
                   ),
                   const SizedBox(height: 16),
-                  _buildServiceCard(
-                    context,
-                    'PARTS & PERFORMANCE',
-                    'Enhance your car with highest-grade components and custom accessories.',
-                    '/images/home/parts.png',
+                  _ServiceCard(
+                    title: 'Parts & Performance',
+                    description: 'Enhance your car with highest-grade components and custom accessories.',
+                    image: '/images/home/parts.png',
+                    cta: 'Browse Parts',
+                    onTap: () => onSelectTab?.call(HomeTabs.parts),
                   ),
                   const SizedBox(height: 16),
-                  _buildServiceCard(
-                    context,
-                    'EXPERT CARE',
-                    'Access our elite network of mechanics and specialized service centers.',
-                    '/images/home/expert.jpeg',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildServiceCard(
-                    context,
-                    'VEHICLE RENTALS (COMING SOON)',
-                    'Short-term and long-term vehicle rental services.',
-                    '/images/home/showroom.jpeg',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildServiceCard(
-                    context,
-                    'LOGISTICS & MOBILITY (COMING SOON)',
-                    'Professional transport and cross-country logistics.',
-                    '/images/home/expert.jpeg',
+                  _ServiceCard(
+                    title: 'Expert Care',
+                    description: 'Access our elite network of mechanics and specialized service centers.',
+                    image: '/images/home/expert.jpeg',
+                    cta: 'Find an Expert',
+                    onTap: () => onSelectTab?.call(HomeTabs.experts),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 100), // Padding to avoid clipping under the floating bottom bar
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHudStat(String value, String label) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppTheme.textSubtle,
-            fontSize: 9,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildServiceCard(BuildContext context, String title, String subtitle, String imageUrl) {
-    return Container(
-      height: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        image: DecorationImage(
-          image: safeImageProvider(imageUrl),
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.85),
-              Colors.black.withValues(alpha: 0.3),
-            ],
-          ),
-          border: Border.all(color: Colors.white10),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
+            const SizedBox(height: 56),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  _FeatureCard(
+                    title: 'Compare\nand Decide.',
+                    description:
+                        'Utilize our side-by-side analysis tool to evaluate performance metrics, aerodynamics, and custom options.',
+                    cta: 'Launch Comparison',
+                    image: '/images/home/compare.jpeg',
+                    onTap: () {
+                      if (context.read<CompareProvider>().count > 0) {
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CompareScreen()));
+                      } else {
+                        onSelectTab?.call(HomeTabs.showroom);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _FeatureCard(
+                    title: 'Relinquish\nYour Machine.',
+                    description:
+                        'Experience a seamless and discreet transition. Our expert appraisers provide accurate valuations that reflect true pedigree.',
+                    cta: 'Get Valuation',
+                    image: '/images/home/relinquish.jpeg',
+                    onTap: () => InquiryModalSheet.show(
+                      context,
+                      title: 'Get a Valuation',
+                      initialMessage:
+                          'I would like a valuation for my vehicle.\n\nMake & model:\nYear:\nMileage:\nCondition / notes:',
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                color: AppTheme.textSubtle,
-                fontSize: 12,
+            const SizedBox(height: 64),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: GrPageHeader(
+                eyebrow: 'The GreenRev Philosophy',
+                title: 'We curate the',
+                muted: 'revolution.',
+                size: 38,
               ),
             ),
+            const SizedBox(height: 28),
+            for (var i = 0; i < _pillars.length; i++)
+              _PillarRow(index: i + 1, title: _pillars[i].$1, description: _pillars[i].$2),
+            const SizedBox(height: 56),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const GrHeadline('Delivered', muted: 'anywhere.', size: 40),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Lagos · Nairobi · Johannesburg',
+                    style: TextStyle(color: AppTheme.textSubtle, fontSize: 13, letterSpacing: 1),
+                  ),
+                  const SizedBox(height: 28),
+                  GrPrimaryButton(
+                    label: 'Inquire Now',
+                    onPressed: () => InquiryModalSheet.show(context),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 120), // clear the floating bottom bar
           ],
         ),
       ),
@@ -363,174 +162,279 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// Interactive AI Concierge Chat Sheet
-class AiConciergeSheet extends StatefulWidget {
-  const AiConciergeSheet({super.key});
-
-  @override
-  State<AiConciergeSheet> createState() => _AiConciergeSheetState();
-}
-
-class _AiConciergeSheetState extends State<AiConciergeSheet> {
-  final List<Map<String, String>> _messages = [
-    {
-      'role': 'assistant',
-      'text': 'Greetings. I am the GreenRev AI Concierge. How may I assist you with finding vehicles, parts, or services today?'
-    }
-  ];
-  final _controller = TextEditingController();
-
-  void _sendMessage() {
-    if (_controller.text.trim().isEmpty) return;
-    final text = _controller.text.trim();
-    _controller.clear();
-
-    setState(() {
-      _messages.add({'role': 'user', 'text': text});
-    });
-
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (!mounted) return;
-      String response = "Understood. I am indexing our marketplace for listings matching your criteria. Is there a specific vehicle, part, or service you need?";
-      final lower = text.toLowerCase();
-      if (lower.contains('g63') || lower.contains('g-wagon') || lower.contains('mercedes')) {
-        response = "There are several independent dealers listing Mercedes-Benz vehicles. The Mercedes-Benz G63 AMG is currently listed by a vendor for ₦270,000,000.";
-      } else if (lower.contains('xiaomi') || lower.contains('su7')) {
-        response = "The Xiaomi SU7 Max is currently listed by a verified dealer in our ecosystem for ₦67,500,000.";
-      } else if (lower.contains('exhaust') || lower.contains('parts') || lower.contains('titanium')) {
-        response = "You can discover automotive parts and components from vendors through the GreenRev marketplace. Search the Parts tab for exhaust systems.";
-      } else if (lower.contains('mechanic') || lower.contains('repair') || lower.contains('expert')) {
-        response = "To schedule service appointments, you can navigate to the 'Experts' tab to search for local mechanics and automotive experts.";
-      }
-
-      setState(() {
-        _messages.add({'role': 'assistant', 'text': response});
-      });
-    });
-  }
+class _Hero extends StatelessWidget {
+  final VoidCallback onExplore;
+  const _Hero({required this.onExplore});
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75 + bottomInset,
-      decoration: const BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border(top: BorderSide(color: Colors.white12)),
-      ),
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: Column(
+    final height = MediaQuery.of(context).size.height * 0.78;
+    return SizedBox(
+      height: height,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          // Drag handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.symmetric(vertical: 12),
+          Image(image: safeImageProvider('/images/home/showroom.jpeg'), fit: BoxFit.cover),
+          DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(2),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.55),
+                  Colors.black.withValues(alpha: 0.25),
+                  AppTheme.background,
+                ],
+                stops: const [0, 0.45, 1],
+              ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-            child: Row(
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 32,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.psychology, color: AppTheme.accent),
-                SizedBox(width: 12),
+                const GrEyebrow('One Automotive Ecosystem.'),
+                const SizedBox(height: 14),
+                const GrHeadline('GreenRev', size: 64),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    for (final (i, word) in const ['Discover', 'Compare', 'Connect'].indexed) ...[
+                      if (i > 0)
+                        Container(
+                          width: 4,
+                          height: 4,
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle),
+                        ),
+                      Text(
+                        word.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          letterSpacing: 2.4,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Connecting buyers with independent vehicle dealers, automotive parts vendors, mechanics and other automotive service providers.',
+                  style: TextStyle(color: AppTheme.textSubtle, fontSize: 14, height: 1.5),
+                ),
+                const SizedBox(height: 28),
+                GrPrimaryButton(label: 'Explore GreenRev', icon: Icons.arrow_forward, onPressed: onExplore),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConciergeCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ConciergeCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GrCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.smart_toy_outlined, color: AppTheme.accent, size: 22),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('GreenRev Concierge', style: TextStyle(color: Colors.white, fontSize: 16)),
+                SizedBox(height: 4),
                 Text(
-                  'AI CONCIERGE ASSISTANT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2.0,
-                    fontSize: 14,
-                  ),
+                  'AI expert advice on vehicles, specs and parts.',
+                  style: TextStyle(color: AppTheme.textSubtle, fontSize: 12),
                 ),
               ],
             ),
           ),
-          const Divider(color: Colors.white10),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(24),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final isUser = msg['role'] == 'user';
-                return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                    decoration: BoxDecoration(
-                      color: isUser ? AppTheme.accent.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.04),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
-                        bottomLeft: isUser ? const Radius.circular(16) : Radius.zero,
-                        bottomRight: isUser ? Radius.zero : const Radius.circular(16),
-                      ),
-                      border: Border.all(
-                        color: isUser ? AppTheme.accent.withValues(alpha: 0.3) : Colors.white10,
-                      ),
-                    ),
-                    child: Text(
-                      msg['text'] ?? '',
-                      style: TextStyle(
-                        color: isUser ? Colors.white : AppTheme.textSubtle,
-                        fontSize: 13.5,
-                        height: 1.4,
-                      ),
-                    ),
+          const Icon(Icons.arrow_outward, color: AppTheme.accent, size: 18),
+        ],
+      ),
+    );
+  }
+}
+
+class _ServiceCard extends StatelessWidget {
+  final String title;
+  final String description;
+  final String image;
+  final String cta;
+  final double height;
+  final VoidCallback onTap;
+
+  const _ServiceCard({
+    required this.title,
+    required this.description,
+    required this.image,
+    required this.cta,
+    required this.onTap,
+    this.height = 240,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: SizedBox(
+          height: height,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image(image: safeImageProvider(image), fit: BoxFit.cover),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black, Colors.black.withValues(alpha: 0.2), Colors.transparent],
                   ),
-                );
-              },
-            ),
+                  border: Border.all(color: AppTheme.hairline),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 30, height: 1.05)),
+                    const SizedBox(height: 10),
+                    Text(
+                      description,
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14, height: 1.45),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Text(
+                          cta.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            letterSpacing: 3,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_outward, color: Colors.white, size: 14),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const Divider(color: Colors.white10),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  final String title;
+  final String description;
+  final String cta;
+  final String image;
+  final VoidCallback onTap;
+
+  const _FeatureCard({
+    required this.title,
+    required this.description,
+    required this.cta,
+    required this.image,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppTheme.obsidian,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppTheme.hairline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 190,
+            child: Image(image: safeImageProvider(image), fit: BoxFit.cover),
+          ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'Ask about vehicles, parts, or services...',
-                      hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.03),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Colors.white10),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Colors.white10),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: AppTheme.accent),
-                      ),
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                CircleAvatar(
-                  backgroundColor: AppTheme.accent,
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.black, size: 18),
-                    onPressed: _sendMessage,
-                  ),
-                ),
+                Text(title, style: const TextStyle(color: Colors.white, fontSize: 34, height: 1.0)),
+                const SizedBox(height: 14),
+                Text(description, style: const TextStyle(color: AppTheme.textSubtle, fontSize: 14, height: 1.5)),
+                const SizedBox(height: 22),
+                GrSecondaryButton(label: cta, onPressed: onTap, icon: Icons.arrow_outward),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PillarRow extends StatelessWidget {
+  final int index;
+  final String title;
+  final String description;
+  const _PillarRow({required this.index, required this.title, required this.description});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 22),
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: AppTheme.border))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                index.toString().padLeft(2, '0'),
+                style: const TextStyle(color: AppTheme.accent, fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 14),
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 24)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(description, style: const TextStyle(color: AppTheme.textSubtle, fontSize: 14, height: 1.55)),
         ],
       ),
     );

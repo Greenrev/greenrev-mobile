@@ -22,7 +22,7 @@ class ReviewModel {
       id: json['_id'] ?? json['id'] ?? '',
       productId: json['productId'] ?? '',
       userId: json['userId'],
-      userName: json['userName'] ?? json['user']?['name'] ?? json['user']?['email'] ?? 'Verified Client',
+      userName: json['customerName'] ?? json['authorName'] ?? json['userName'] ?? json['user']?['name'] ?? json['user']?['email'] ?? 'Verified Client',
       rating: (json['rating'] as num?)?.toInt() ?? 5,
       comment: json['comment'],
       createdAt: json['createdAt']?.toString() ?? DateTime.now().toIso8601String(),

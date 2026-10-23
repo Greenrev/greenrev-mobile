@@ -1,25 +1,40 @@
 import 'package:flutter/material.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/theme.dart';
+import '../../../../core/widgets/gr_ui.dart';
 
+/// "General Inquiry" form — same fields and wording as the website's Inquire Now modal.
 class InquiryModalSheet extends StatefulWidget {
   final String? productId;
   final String? productName;
+  final String? title;
+  final String? initialMessage;
 
   const InquiryModalSheet({
     super.key,
     this.productId,
     this.productName,
+    this.title,
+    this.initialMessage,
   });
 
-  static void show(BuildContext context, {String? productId, String? productName}) {
+  static void show(
+    BuildContext context, {
+    String? productId,
+    String? productName,
+    String? title,
+    String? initialMessage,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => InquiryModalSheet(
         productId: productId,
         productName: productName,
+        title: title,
+        initialMessage: initialMessage,
       ),
     );
   }
@@ -33,18 +48,13 @@ class _InquiryModalSheetState extends State<InquiryModalSheet> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  late TextEditingController _messageController;
+  late final TextEditingController _messageController = TextEditingController(
+    text: widget.initialMessage ?? (widget.productName != null ? 'Inquiry regarding: ${widget.productName}\n\n' : ''),
+  );
   final ApiClient _apiClient = ApiClient();
   bool _isSubmitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final defaultMsg = widget.productName != null
-        ? 'Inquiry regarding item: ${widget.productName}'
-        : '';
-    _messageController = TextEditingController(text: defaultMsg);
-  }
+  bool _received = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -58,42 +68,23 @@ class _InquiryModalSheetState extends State<InquiryModalSheet> {
   Future<void> _submitInquiry() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
     try {
       final body = {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
-        if (_phoneController.text.trim().isNotEmpty)
-          'phone': _phoneController.text.trim(),
+        if (_phoneController.text.trim().isNotEmpty) 'phone': _phoneController.text.trim(),
         'message': _messageController.text.trim(),
       };
-
       await _apiClient.post('/api/v1/inquiries', body: body, requiresAuth: false);
-
       if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppTheme.accent,
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            'Inquiry submitted successfully! Our desk will contact you shortly.',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-          ),
-        ),
-      );
+      setState(() => _received = true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            e is ApiException ? e.message : 'Failed to submit inquiry. Please try again.',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ),
-      );
+      setState(() => _error = e is ApiException ? e.message : 'Failed to send inquiry. Please try again.');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -101,131 +92,137 @@ class _InquiryModalSheetState extends State<InquiryModalSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomInset),
-      decoration: const BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(top: BorderSide(color: Colors.white12)),
-      ),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Drag indicator
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.support_agent, color: AppTheme.accent, size: 24),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'BESPOKE INQUIRY',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        if (widget.productName != null)
-                          Text(
-                            widget.productName!,
-                            style: const TextStyle(
-                              color: AppTheme.accent,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _nameController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                decoration: _inputDecoration('FULL NAME', Icons.person_outline),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Name is required' : null,
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _emailController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                keyboardType: TextInputType.emailAddress,
-                decoration: _inputDecoration('EMAIL ADDRESS', Icons.email_outlined),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Email is required';
-                  if (!val.contains('@')) return 'Enter a valid email';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _phoneController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                keyboardType: TextInputType.phone,
-                decoration: _inputDecoration('PHONE NUMBER (OPTIONAL)', Icons.phone_outlined),
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _messageController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                maxLines: 3,
-                decoration: _inputDecoration('MESSAGE OR SPECIFIC REQUIREMENTS', Icons.chat_bubble_outline),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Message is required' : null,
-              ),
-              const SizedBox(height: 24),
-              Container(
-                decoration: AppTheme.accentGlowDecoration(radius: 16),
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitInquiry,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
-                        )
-                      : const Text('DISPATCH INQUIRY'),
-                ),
-              ),
-            ],
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A0A0A),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            child: _received ? _buildReceived() : _buildForm(),
           ),
         ),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppTheme.textSubtle, fontSize: 10, letterSpacing: 1.0),
-      prefixIcon: Icon(icon, color: AppTheme.textSubtle, size: 18),
-      filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.03),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.white10)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.white10)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.accent)),
+  Widget _handle() => Center(
+        child: Container(
+          width: 36,
+          height: 4,
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+        ),
+      );
+
+  Widget _buildReceived() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _handle(),
+        const SizedBox(height: 16),
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(color: AppTheme.accent.withValues(alpha: 0.1), shape: BoxShape.circle),
+          child: const Icon(Icons.check, color: AppTheme.accent, size: 30),
+        ),
+        const SizedBox(height: 20),
+        const GrHeadline('Inquiry Received', size: 26, textAlign: TextAlign.center),
+        const SizedBox(height: 10),
+        const Text(
+          'Thank you for reaching out to GreenRev. Our support team will contact you shortly.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppTheme.textSubtle, fontSize: 14, height: 1.5),
+        ),
+        const SizedBox(height: 28),
+        GrSecondaryButton(label: 'Close', onPressed: () => Navigator.pop(context)),
+      ],
+    );
+  }
+
+  Widget _label(String text) => Padding(
+        padding: const EdgeInsets.only(top: 18, bottom: 2),
+        child: GrSectionLabel(text),
+      );
+
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _handle(),
+          Row(
+            children: [
+              const Expanded(child: GrEyebrow('Inquire Now')),
+              GestureDetector(
+                onTap: _isSubmitting ? null : () => Navigator.pop(context),
+                child: const Icon(Icons.close, color: Colors.white38, size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          GrHeadline(widget.title ?? 'General Inquiry', size: 30),
+          if (widget.productName != null) ...[
+            const SizedBox(height: 8),
+            Text(widget.productName!, style: const TextStyle(color: AppTheme.textSubtle, fontSize: 13)),
+          ],
+          const SizedBox(height: 8),
+          _label('Name *'),
+          GrTextField(
+            controller: _nameController,
+            hint: 'Your full name',
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+          ),
+          _label('Email *'),
+          GrTextField(
+            controller: _emailController,
+            hint: 'you@example.com',
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Email is required';
+              if (!RegExp(r'^.+@.+\..+$').hasMatch(v.trim())) return 'Enter a valid email';
+              return null;
+            },
+          ),
+          _label('Phone'),
+          GrTextField(
+            controller: _phoneController,
+            hint: 'Optional',
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+          ),
+          _label('Message *'),
+          const SizedBox(height: 8),
+          GrTextArea(
+            controller: _messageController,
+            hint: 'How can we help you?',
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Message is required' : null,
+          ),
+          const SizedBox(height: 20),
+          if (_error != null) ...[
+            GrNotice(_error!),
+            const SizedBox(height: 16),
+          ],
+          GrPrimaryButton(
+            label: 'Send Inquiry',
+            loadingLabel: 'Sending…',
+            loading: _isSubmitting,
+            icon: Icons.send_rounded,
+            onPressed: _submitInquiry,
+          ),
+        ],
+      ),
     );
   }
 }

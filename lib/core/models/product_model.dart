@@ -1,3 +1,5 @@
+import '../utils/format.dart';
+
 class ProductColor {
   final String name;
   final String hex;
@@ -36,7 +38,7 @@ class ProductSpecs {
   factory ProductSpecs.fromJson(Map<String, dynamic> json) {
     return ProductSpecs(
       acceleration: (json['acceleration'] as num?)?.toDouble() ?? (json['0_100'] as num?)?.toDouble(),
-      horsepower: json['horsepower'] as int?,
+      horsepower: (json['horsepower'] as num?)?.toInt(),
       torque: json['torque']?.toString(),
       transmission: json['transmission']?.toString(),
       topSpeed: json['topSpeed']?.toString(),
@@ -74,6 +76,7 @@ class ProductModel {
   final int stockQuantity;
   final String? vendorId;
   final String? vendorName;
+  final String? vendorPhone;
 
   ProductModel({
     required this.id,
@@ -93,27 +96,43 @@ class ProductModel {
     this.stockQuantity = 1,
     this.vendorId,
     this.vendorName,
+    this.vendorPhone,
   });
 
+  /// Price as shown to users. The API often stores a bare number string ("90000000");
+  /// those are formatted as ₦90,000,000, anything already formatted is kept as-is.
+  String get displayPrice {
+    final raw = price.trim();
+    if (raw.isEmpty || RegExp(r'^[\d.]+$').hasMatch(raw)) {
+      return priceValue > 0 ? grMoney(priceValue) : 'Price on request';
+    }
+    return raw;
+  }
+
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    final rawPrice = json['price']?.toString() ?? '';
+    final priceValue = (json['priceValue'] as num?)?.toDouble() ??
+        double.tryParse(rawPrice.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+        0.0;
     return ProductModel(
       id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
       make: json['make'] ?? '',
       category: json['category'] ?? 'vehicle',
-      price: json['price'] ?? '',
-      priceValue: (json['priceValue'] as num?)?.toDouble() ?? 0.0,
-      year: json['year'] as int?,
+      price: rawPrice,
+      priceValue: priceValue,
+      year: (json['year'] as num?)?.toInt(),
       mileage: json['mileage']?.toString(),
       color: json['color'] != null ? ProductColor.fromJson(json['color']) : null,
       image: json['image'] ?? '',
-      images: json['images'] != null ? List<String>.from(json['images']) : [],
+      images: json['images'] is List ? List<String>.from((json['images'] as List).map((e) => e.toString())) : [],
       specs: json['specs'] != null ? ProductSpecs.fromJson(json['specs']) : null,
       description: json['description'],
       inStock: json['inStock'] ?? true,
-      stockQuantity: json['stockQuantity'] ?? 1,
-      vendorId: json['vendorId'],
-      vendorName: json['vendorName'],
+      stockQuantity: (json['stockQuantity'] as num?)?.toInt() ?? 1,
+      vendorId: json['vendorId']?.toString(),
+      vendorName: json['vendorName']?.toString(),
+      vendorPhone: json['vendorPhone']?.toString(),
     );
   }
 
@@ -135,5 +154,6 @@ class ProductModel {
     'stockQuantity': stockQuantity,
     'vendorId': vendorId,
     'vendorName': vendorName,
+    'vendorPhone': vendorPhone,
   };
 }

@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 import '../../../../core/state/auth_provider.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/image_helper.dart';
-// import 'onboarding_screen.dart';
+import '../../../../core/widgets/gr_ui.dart';
 import '../../../home/presentation/screens/main_shell.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
 
+/// Brand splash. Like the website, guests can browse; signing in is offered from the shell.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -14,56 +14,34 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..forward();
+  late final Animation<double> _fade = CurvedAnimation(parent: _controller, curve: const Interval(0, 0.7, curve: Curves.easeOut));
+  late final Animation<double> _rise = Tween(begin: 16.0, end: 0.0)
+      .animate(CurvedAnimation(parent: _controller, curve: const Interval(0, 0.7, curve: Curves.easeOutCubic)));
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    );
+    _continue();
+  }
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.65, curve: Curves.easeIn),
+  Future<void> _continue() async {
+    final auth = context.read<AuthProvider>();
+    await Future.delayed(const Duration(milliseconds: 1800));
+    // Wait for the persisted session check so the shell opens signed in when possible.
+    while (auth.isLoading && mounted) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, _, _) => const MainShell(),
+        transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 600),
       ),
     );
-
-    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.65, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    _controller.forward();
-
-    // Transition after loading session
-    Future.delayed(const Duration(milliseconds: 2600), () {
-      if (!mounted) return;
-
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-      Widget targetScreen = authProvider.isLoggedIn
-          ? const MainShell()
-          : const LoginScreen();
-
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 600),
-        ),
-      );
-    });
   }
 
   @override
@@ -77,67 +55,50 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // Background subtle ambient glow
-          Center(
+          Positioned(
+            top: -120,
+            left: -80,
             child: Container(
-              width: 260,
-              height: 260,
+              width: 360,
+              height: 360,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.accent.withValues(alpha: 0.06),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.accent.withValues(alpha: 0.08),
-                    blurRadius: 100,
-                    spreadRadius: 40,
-                  ),
+                color: AppTheme.forest.withValues(alpha: 0.6),
+                boxShadow: [BoxShadow(color: AppTheme.forest, blurRadius: 160, spreadRadius: 60)],
+              ),
+            ),
+          ),
+          Center(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) => Opacity(
+                opacity: _fade.value,
+                child: Transform.translate(offset: Offset(0, _rise.value), child: child),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image(image: safeImageProvider('/logo2.png'), height: 72, fit: BoxFit.contain),
+                  const SizedBox(height: 28),
+                  const GrHeadline('GreenRev', size: 44, textAlign: TextAlign.center),
+                  const SizedBox(height: 14),
+                  const GrEyebrow('One Automotive Ecosystem.'),
                 ],
               ),
             ),
           ),
-
-          // Centered Logo & Loader
-          Center(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image(
-                          image: safeImageProvider('/logo2.png'),
-                          height: 90,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 36),
-                        const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: AppTheme.accent,
-                            strokeWidth: 2.0,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'INITIALIZING ECOSYSTEM',
-                          style: TextStyle(
-                            color: AppTheme.textSubtle,
-                            fontSize: 10,
-                            letterSpacing: 3.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 64,
+            child: Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(color: AppTheme.accent, strokeWidth: 1.5),
+              ),
             ),
           ),
         ],
