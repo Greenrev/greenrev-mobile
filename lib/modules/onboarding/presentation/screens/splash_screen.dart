@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/state/auth_provider.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/image_helper.dart';
 import '../../../../core/widgets/gr_ui.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../home/presentation/screens/main_shell.dart';
+import 'onboarding_screen.dart';
 
-/// Brand splash. Like the website, guests can browse; signing in is offered from the shell.
+/// Brand splash → intro slides (first launch only) → login. Signed-in users go straight to the app.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -35,9 +38,23 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       await Future.delayed(const Duration(milliseconds: 100));
     }
     if (!mounted) return;
+
+    var seenOnboarding = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      seenOnboarding = prefs.getBool(OnboardingScreen.seenKey) ?? false;
+    } catch (_) {}
+    if (!mounted) return;
+
+    final Widget destination = auth.isLoggedIn
+        ? const MainShell()
+        : seenOnboarding
+            ? const LoginScreen()
+            : const OnboardingScreen();
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, _, _) => const MainShell(),
+        pageBuilder: (_, _, _) => destination,
         transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 600),
       ),
