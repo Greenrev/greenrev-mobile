@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../config/env.dart';
 import 'token_store.dart';
 
@@ -18,6 +19,15 @@ class ApiException implements Exception {
 
   @override
   String toString() => 'ApiException(code: $code, message: $message, status: $statusCode)';
+}
+
+/// A file for [ApiClient.postMultipart].
+class UploadFile {
+  final String field;
+  final Uint8List bytes;
+  final String filename;
+  final String contentType;
+  const UploadFile({required this.field, required this.bytes, required this.filename, required this.contentType});
 }
 
 /// Outcome of renewing the session: new tokens, session dead, or server unreachable.
@@ -124,16 +134,28 @@ class ApiClient {
   Future<dynamic> delete(String path, {bool requiresAuth = true}) =>
       _send('DELETE', path, requiresAuth: requiresAuth);
 
-  Future<dynamic> _send(String method, String path, {dynamic body, bool requiresAuth = true}) async {
+  /// multipart/form-data POST for file uploads (product photos, voice notes).
+  Future<dynamic> postMultipart(
+    String path, {
+    Map<String, String> fields = const {},
+    List<UploadFile> files = const [],
+    Duration timeout = const Duration(seconds: 90),
+  }) =>
+      _withRefresh(path, true, () => _rawMultipart(path, fields, files, timeout));
+
+  Future<dynamic> _send(String method, String path, {dynamic body, bool requiresAuth = true}) =>
+      _withRefresh(path, requiresAuth, () => _raw(method, path, body: body, requiresAuth: requiresAuth));
+
+  Future<dynamic> _withRefresh(String path, bool requiresAuth, Future<http.Response> Function() request) async {
     final usedToken = _accessToken;
-    var response = await _raw(method, path, body: body, requiresAuth: requiresAuth);
+    var response = await request();
 
     if (response.statusCode == 401 && requiresAuth && !_noRefreshPaths.contains(path) && hasSession) {
       // Another caller may already have refreshed while this request was in flight.
       final alreadyRenewed = _accessToken != null && _accessToken != usedToken;
       final result = alreadyRenewed ? RefreshResult.refreshed : await refreshSession();
       if (result == RefreshResult.refreshed) {
-        response = await _raw(method, path, body: body, requiresAuth: requiresAuth);
+        response = await request();
       } else if (result == RefreshResult.invalid) {
         await clearTokens();
         onSessionExpired?.call();
@@ -211,6 +233,33 @@ class ApiClient {
         message: 'Unable to connect to the server: $e',
         statusCode: 0,
       );
+    }
+  }
+
+  Future<http.Response> _rawMultipart(
+    String path,
+    Map<String, String> fields,
+    List<UploadFile> files,
+    Duration timeout,
+  ) async {
+    final request = http.MultipartRequest('POST', Uri.parse('${Env.apiBaseUrl}$path'))
+      ..headers['Accept'] = 'application/json'
+      ..fields.addAll(fields);
+    if (_accessToken != null) request.headers['Authorization'] = 'Bearer $_accessToken';
+    for (final f in files) {
+      request.files.add(http.MultipartFile.fromBytes(
+        f.field,
+        f.bytes,
+        filename: f.filename,
+        contentType: MediaType.parse(f.contentType),
+      ));
+    }
+    try {
+      return await http.Response.fromStream(await _client.send(request).timeout(timeout));
+    } on TimeoutException {
+      throw ApiException(code: 'TIMEOUT', message: 'The upload took too long. Check your connection and try again.', statusCode: 0);
+    } catch (e) {
+      throw ApiException(code: 'NETWORK_ERROR', message: 'Unable to connect to the server: $e', statusCode: 0);
     }
   }
 

@@ -70,12 +70,23 @@ class _MechanicsScreenState extends State<MechanicsScreen> {
   String? _error;
   String? _expandedId;
   bool _showMap = false;
+  bool? _loggedIn;
 
   @override
   void initState() {
     super.initState();
     _search.addListener(() => setState(() {}));
-    _fetchExperts();
+  }
+
+  // Contact details come back only for signed-in users, so refetch on sign-in/out.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final loggedIn = context.watch<AuthProvider>().isLoggedIn;
+    if (loggedIn != _loggedIn) {
+      _loggedIn = loggedIn;
+      _fetchExperts();
+    }
   }
 
   @override
@@ -91,7 +102,12 @@ class _MechanicsScreenState extends State<MechanicsScreen> {
       _error = null;
     });
     try {
-      final response = await ApiClient().get('/api/v1/experts', requiresAuth: false);
+      final api = ApiClient();
+      var response = await api.get('/api/v1/experts');
+      // An expired token is treated as a guest; renew it once so members see contacts.
+      if (response is Map && response['contactHidden'] == true && api.hasSession) {
+        if (await api.refreshSession() == RefreshResult.refreshed) response = await api.get('/api/v1/experts');
+      }
       final list = (response is Map ? response['experts'] : null) as List? ?? const [];
       _experts = list.whereType<Map<String, dynamic>>().map(_Expert.fromJson).toList();
     } catch (e) {
@@ -433,7 +449,11 @@ class _ExpertCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (onCall != null) _ActionChip(icon: Icons.phone_outlined, label: 'Call', onTap: onCall!),
+                if (onCall != null)
+                  _ActionChip(icon: Icons.phone_outlined, label: 'Call', onTap: onCall!)
+                else if (!context.watch<AuthProvider>().isLoggedIn)
+                  // Phone numbers are for signed-in members only.
+                  _ActionChip(icon: Icons.lock_outline, label: 'Sign in to call', onTap: () => _pushLogin(context)),
                 if (onDirections != null)
                   _ActionChip(icon: Icons.navigation_outlined, label: 'Directions', onTap: onDirections!),
                 _ActionChip(

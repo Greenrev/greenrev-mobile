@@ -3,9 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>GreenRev needs access to your photos to attach payment receipts to your requests.</string>
+	<string>GreenRev needs access to your photos to attach payment receipts and to add photos to your listings.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>GreenRev uses the camera to photograph payment receipts for your requests.</string>
+	<string>GreenRev uses the camera to photograph payment receipts, and vehicles, parts or documents for your listings.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>GreenRev uses the microphone when you describe a vehicle or part out loud to fill in your listing.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

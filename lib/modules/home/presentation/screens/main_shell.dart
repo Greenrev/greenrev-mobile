@@ -12,12 +12,14 @@ import '../../../about/presentation/screens/about_screen.dart';
 import '../../../acquisitions/presentation/screens/acquisitions_screen.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../cart/presentation/screens/cart_screen.dart';
+import '../../../faq/presentation/screens/faq_screen.dart';
 import '../../../legal/data/legal_content.dart';
 import '../../../legal/presentation/screens/legal_screen.dart';
 import '../../../mechanics/presentation/screens/mechanics_screen.dart';
 import '../../../messages/presentation/screens/messages_screen.dart';
 import '../../../parts/presentation/screens/parts_screen.dart';
 import '../../../showroom/presentation/screens/showroom_screen.dart';
+import '../../../vendor/presentation/screens/add_listing_screen.dart';
 import 'home_screen.dart';
 
 /// Role badge labels — same as the website navbar.
@@ -438,6 +440,12 @@ class _MainShellState extends State<MainShell> {
                       },
                       trailing: Icons.open_in_new,
                     ),
+                  if (user.role == 'vendor' || user.role == 'admin')
+                    _menuItem(
+                      Icons.add_box_outlined,
+                      'Add Listing',
+                      () => go(const AddListingScreen()),
+                    ),
                   _menuItem(Icons.storefront_outlined, 'Browse Boutique', () {
                     Navigator.pop(sheetContext);
                     _select(HomeTabs.showroom);
@@ -457,6 +465,11 @@ class _MainShellState extends State<MainShell> {
                     () => go(
                       AboutScreen(onExplore: () => _select(HomeTabs.showroom)),
                     ),
+                  ),
+                  _menuItem(
+                    Icons.help_outline,
+                    'Help & FAQ',
+                    () => go(const FaqScreen()),
                   ),
                   const SizedBox(height: 8),
                   Divider(color: AppTheme.hairline, height: 1),
