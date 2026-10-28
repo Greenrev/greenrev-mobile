@@ -3,6 +3,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Voice notes for the vendor listing assistant -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Experts pinning their workshop; customers finding experts near them -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:label="Greenrev"

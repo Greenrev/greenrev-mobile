@@ -131,6 +131,9 @@ class ApiClient {
   Future<dynamic> put(String path, {dynamic body, bool requiresAuth = true}) =>
       _send('PUT', path, body: body, requiresAuth: requiresAuth);
 
+  Future<dynamic> patch(String path, {dynamic body, bool requiresAuth = true}) =>
+      _send('PATCH', path, body: body, requiresAuth: requiresAuth);
+
   Future<dynamic> delete(String path, {bool requiresAuth = true}) =>
       _send('DELETE', path, requiresAuth: requiresAuth);
 
@@ -224,6 +227,8 @@ class ApiClient {
           return await _client.post(uri, headers: headers, body: encoded);
         case 'PUT':
           return await _client.put(uri, headers: headers, body: encoded);
+        case 'PATCH':
+          return await _client.patch(uri, headers: headers, body: encoded);
         default:
           return await _client.delete(uri, headers: headers);
       }

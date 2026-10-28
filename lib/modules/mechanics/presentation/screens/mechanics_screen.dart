@@ -8,6 +8,8 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/state/auth_provider.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/image_helper.dart';
+import '../../../../core/utils/location.dart';
+import '../../../../core/widgets/gr_map.dart';
 import '../../../../core/widgets/gr_ui.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 
@@ -25,6 +27,13 @@ class _Expert {
   final String? image;
   final double? averageRating;
   final int reviewCount;
+  final String state;
+
+  /// The expert shows only a ~1 km area; there's no street address.
+  final bool approximate;
+
+  /// How far they travel; 0 = anywhere.
+  final int radiusKm;
 
   _Expert.fromJson(Map<String, dynamic> j)
       : id = (j['id'] ?? j['_id'] ?? '').toString(),
@@ -39,7 +48,10 @@ class _Expert {
         email = j['email']?.toString() ?? '',
         image = j['image'] as String?,
         averageRating = (j['averageRating'] as num?)?.toDouble(),
-        reviewCount = (j['reviewCount'] as num?)?.toInt() ?? 0;
+        reviewCount = (j['reviewCount'] as num?)?.toInt() ?? 0,
+        state = j['state']?.toString() ?? '',
+        approximate = j['approximateLocation'] == true,
+        radiusKm = (j['serviceRadiusKm'] as num?)?.toInt() ?? 25;
 
   // The API fills unknown locations with placeholders; hide those.
   static String _clean(dynamic v) {
@@ -71,6 +83,37 @@ class _MechanicsScreenState extends State<MechanicsScreen> {
   String? _expandedId;
   bool _showMap = false;
   bool? _loggedIn;
+  DeviceFix? _me;
+  bool _locating = false;
+
+  double? _distanceTo(_Expert e) => _me != null && e.hasLocation ? distanceKm(_me!.lat, _me!.lng, e.lat, e.lng) : null;
+
+  bool _covers(_Expert e) {
+    final d = _distanceTo(e);
+    return d != null && (e.radiusKm == 0 || d <= e.radiusKm);
+  }
+
+  Future<void> _toggleNearMe() async {
+    if (_me != null) {
+      setState(() => _me = null);
+      return;
+    }
+    setState(() => _locating = true);
+    try {
+      final fix = await currentDeviceFix();
+      if (mounted) setState(() => _me = fix);
+    } on LocationFailure catch (f) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text(f.message),
+          action: f.needsSettings ? SnackBarAction(label: 'SETTINGS', onPressed: openLocationSettings) : null,
+        ));
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
 
   @override
   void initState() {
@@ -120,6 +163,13 @@ class _MechanicsScreenState extends State<MechanicsScreen> {
   }
 
   List<_Expert> get _filtered {
+    final list = _matching;
+    if (_me == null) return list;
+    // Near me: closest first; experts without a pin go last.
+    return [...list]..sort((a, b) => (_distanceTo(a) ?? double.infinity).compareTo(_distanceTo(b) ?? double.infinity));
+  }
+
+  List<_Expert> get _matching {
     final q = _search.text.trim().toLowerCase();
     if (q.isEmpty) return _experts;
     return _experts
@@ -184,6 +234,8 @@ class _MechanicsScreenState extends State<MechanicsScreen> {
                       _ViewToggle(showMap: _showMap, onChanged: (v) => setState(() => _showMap = v)),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  _NearMeChip(active: _me != null, loading: _locating, onTap: _toggleNearMe),
                 ],
               ),
             ),
@@ -231,8 +283,11 @@ class _MechanicsScreenState extends State<MechanicsScreen> {
             expert: e,
             expanded: _expandedId == e.id,
             onTap: () => setState(() => _expandedId = _expandedId == e.id ? null : e.id),
+            distanceKm: _distanceTo(e),
+            covers: _covers(e),
             onCall: e.phone.isEmpty ? null : () => _launch(Uri(scheme: 'tel', path: e.phone)),
-            onDirections: !e.hasLocation
+            // Directions to a blurred pin would send people to the wrong street.
+            onDirections: !e.hasLocation || e.approximate
                 ? null
                 : () => _launch(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${e.lat},${e.lng}')),
           );
@@ -250,15 +305,41 @@ class _MechanicsScreenState extends State<MechanicsScreen> {
           options: MapOptions(
             initialCenter: located.isNotEmpty ? LatLng(located.first.lat, located.first.lng) : const LatLng(9.0820, 8.6753),
             initialZoom: 5.5,
+            // Dark while tiles load, instead of flashing light grey.
+            backgroundColor: const Color(0xFF1B1D1D),
             onTap: (_, _) => setState(() => _expandedId = null),
           ),
           children: [
-            TileLayer(
-              urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-              userAgentPackageName: 'com.greenrev.mobile',
+            darkOsmTileLayer(),
+            CircleLayer(
+              circles: [
+                for (final e in located.where((e) => e.approximate))
+                  CircleMarker(
+                    point: LatLng(e.lat, e.lng),
+                    radius: 900,
+                    useRadiusInMeter: true,
+                    color: AppTheme.accent.withValues(alpha: 0.08),
+                    borderColor: AppTheme.accent.withValues(alpha: 0.35),
+                    borderStrokeWidth: 1,
+                  ),
+              ],
             ),
             MarkerLayer(
               markers: [
+                if (_me != null)
+                  Marker(
+                    point: LatLng(_me!.lat, _me!.lng),
+                    width: 22,
+                    height: 22,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF3B82F6),
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: const [BoxShadow(color: Color(0x663B82F6), blurRadius: 12, spreadRadius: 4)],
+                      ),
+                    ),
+                  ),
                 for (final e in located)
                   Marker(
                     point: LatLng(e.lat, e.lng),
@@ -282,6 +363,7 @@ class _MechanicsScreenState extends State<MechanicsScreen> {
                   ),
               ],
             ),
+            osmAttribution(bottom: MediaQuery.of(context).padding.bottom + 92),
           ],
         ),
         if (located.isEmpty)
@@ -308,9 +390,12 @@ class _MechanicsScreenState extends State<MechanicsScreen> {
                   expert: e,
                   expanded: true,
                   onTap: () {},
+                  distanceKm: _distanceTo(e),
+                  covers: _covers(e),
                   onCall: e.phone.isEmpty ? null : () => _launch(Uri(scheme: 'tel', path: e.phone)),
-                  onDirections: () =>
-                      _launch(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${e.lat},${e.lng}')),
+                  onDirections: e.approximate
+                      ? null
+                      : () => _launch(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${e.lat},${e.lng}')),
                 ),
               );
             }),
@@ -354,11 +439,15 @@ class _ExpertCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onCall;
   final VoidCallback? onDirections;
+  final double? distanceKm;
+  final bool covers;
 
   const _ExpertCard({
     required this.expert,
     required this.expanded,
     required this.onTap,
+    this.distanceKm,
+    this.covers = false,
     this.onCall,
     this.onDirections,
   });
@@ -420,8 +509,21 @@ class _ExpertCard extends StatelessWidget {
                           const Icon(Icons.place_outlined, color: Colors.white38, size: 13),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(expert.place, style: const TextStyle(color: AppTheme.textSubtle, fontSize: 12)),
+                            child: Text(
+                              distanceKm == null ? expert.place : '${expert.place} · ${formatKm(distanceKm!)}',
+                              style: const TextStyle(color: AppTheme.textSubtle, fontSize: 12),
+                            ),
                           ),
+                        ],
+                      ),
+                    ],
+                    if (covers || expert.approximate) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        children: [
+                          if (covers) const GrPill('Covers your area'),
+                          if (expert.approximate) const GrPill('Approx. area', color: Colors.white54),
                         ],
                       ),
                     ],
@@ -440,7 +542,14 @@ class _ExpertCard extends StatelessWidget {
             ),
           ],
           if (expanded) ...[
-            if (expert.address.isNotEmpty) ...[
+            if (expert.approximate) ...[
+              const SizedBox(height: 14),
+              Text(
+                'Works around ${[expert.city, expert.state].where((s) => s.isNotEmpty).join(', ').ifEmpty('this area')}. '
+                'Message them for exact directions.',
+                style: const TextStyle(color: AppTheme.textSubtle, fontSize: 13, height: 1.45),
+              ),
+            ] else if (expert.address.isNotEmpty) ...[
               const SizedBox(height: 14),
               Text(expert.address, style: const TextStyle(color: AppTheme.textSubtle, fontSize: 13, height: 1.45)),
             ],
@@ -946,5 +1055,50 @@ class _BookingSheetState extends State<_BookingSheet> {
         ),
       ),
     ]);
+  }
+}
+
+extension on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
+}
+
+class _NearMeChip extends StatelessWidget {
+  final bool active;
+  final bool loading;
+  final VoidCallback onTap;
+  const _NearMeChip({required this.active, required this.loading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: loading ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: active ? AppTheme.accent : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: active ? AppTheme.accent : AppTheme.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            loading
+                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent))
+                : Icon(Icons.my_location, size: 14, color: active ? Colors.black : AppTheme.accent),
+            const SizedBox(width: 8),
+            Text(
+              active ? 'NEAREST FIRST' : 'NEAR ME',
+              style: TextStyle(
+                color: active ? Colors.black : Colors.white70,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.6,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

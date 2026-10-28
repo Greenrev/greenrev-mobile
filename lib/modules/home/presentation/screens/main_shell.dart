@@ -16,6 +16,7 @@ import '../../../faq/presentation/screens/faq_screen.dart';
 import '../../../legal/data/legal_content.dart';
 import '../../../legal/presentation/screens/legal_screen.dart';
 import '../../../mechanics/presentation/screens/mechanics_screen.dart';
+import '../../../mechanics/presentation/screens/expert_location_screen.dart';
 import '../../../messages/presentation/screens/messages_screen.dart';
 import '../../../parts/presentation/screens/parts_screen.dart';
 import '../../../showroom/presentation/screens/showroom_screen.dart';
@@ -439,6 +440,12 @@ class _MainShellState extends State<MainShell> {
                         _openWebDashboard(dashboardPath);
                       },
                       trailing: Icons.open_in_new,
+                    ),
+                  if (user.role == 'mechanic')
+                    _menuItem(
+                      Icons.add_location_alt_outlined,
+                      'My Workshop Location',
+                      () => go(const ExpertLocationScreen()),
                     ),
                   if (user.role == 'vendor' || user.role == 'admin')
                     _menuItem(
