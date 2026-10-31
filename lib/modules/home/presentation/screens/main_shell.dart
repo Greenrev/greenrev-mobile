@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/env.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/state/auth_provider.dart';
 import '../../../../core/state/cart_provider.dart';
@@ -505,6 +506,24 @@ class _MainShellState extends State<MainShell> {
                       (route) => false,
                     );
                   }, color: Colors.red.shade300),
+                  // Required by the App Store and Google Play for apps with sign-up.
+                  _menuItem(Icons.person_remove_outlined, 'Delete Account', () async {
+                    Navigator.pop(sheetContext);
+                    final confirmed = await _confirmDeleteAccount(context);
+                    if (confirmed != true || !context.mounted) return;
+                    try {
+                      await auth.deleteAccount();
+                    } on ApiException catch (e) {
+                      if (context.mounted) showGrSnack(context, e.message, error: true);
+                      return;
+                    }
+                    if (!context.mounted) return;
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                    );
+                    showGrSnack(context, 'Your account has been deleted');
+                  }, muted: true),
                 ],
               ),
             ),
@@ -512,6 +531,51 @@ class _MainShellState extends State<MainShell> {
         );
       },
     );
+  }
+
+  /// Deletion is immediate and permanent on the server, so make the user type DELETE.
+  Future<bool?> _confirmDeleteAccount(BuildContext context) {
+    final typed = TextEditingController();
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Delete your account?', style: TextStyle(color: Colors.white, fontSize: 20)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'This permanently deletes your GreenRev account and signs you out. It can\'t be undone. '
+                'Some records may be kept where the law requires — see the Privacy Policy.',
+                style: TextStyle(color: AppTheme.textSubtle, fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              const Text('Type DELETE to confirm', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: typed,
+                autofocus: true,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) => setDialogState(() {}),
+                style: const TextStyle(color: Colors.white),
+                cursorColor: AppTheme.danger,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('CANCEL')),
+            TextButton(
+              onPressed: typed.text.trim().toUpperCase() == 'DELETE' ? () => Navigator.pop(dialogContext, true) : null,
+              style: TextButton.styleFrom(foregroundColor: AppTheme.danger),
+              child: const Text('DELETE ACCOUNT'),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(typed.dispose);
   }
 
   Widget _menuItem(

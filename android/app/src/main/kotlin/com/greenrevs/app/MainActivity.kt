@@ -1,4 +1,4 @@
-package com.greenrev.greenrev_mobile
+package com.greenrevs.app
 
 import io.flutter.embedding.android.FlutterActivity
 

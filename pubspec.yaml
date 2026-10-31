@@ -57,6 +57,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -105,3 +106,16 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# App icons: run `dart run flutter_launcher_icons` after changing assets/icon/.
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png" # opaque — App Store rejects icons with transparency
+  android: "ic_launcher"
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: "#050606"
+  adaptive_icon_background: "#050606"
+  adaptive_icon_foreground: "assets/icon/adaptive_foreground.png"
+  adaptive_icon_monochrome: "assets/icon/adaptive_foreground.png"
+  adaptive_icon_foreground_inset: 0 # adaptive_foreground.png is already padded to the safe zone
+  min_sdk_android: 21

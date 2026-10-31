@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 /// OSM's usage policy requires a real app id and visible credit ([osmAttribution]).
 TileLayer darkOsmTileLayer() => TileLayer(
       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      userAgentPackageName: 'com.greenrev.greenrev_mobile',
+      userAgentPackageName: 'com.greenrevs.app',
       tileBuilder: _darkTile,
     );
 

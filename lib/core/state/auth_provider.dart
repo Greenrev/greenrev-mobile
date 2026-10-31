@@ -251,6 +251,14 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Permanently deletes the signed-in account (DELETE /api/v1/profile), then signs out.
+  /// Throws [ApiException] if the server refuses, leaving the session intact.
+  Future<void> deleteAccount() async {
+    await _apiClient.delete('/api/v1/profile');
+    await clearSession();
+    notifyListeners();
+  }
+
   Future<void> clearSession() async {
     _user = null;
     SocketService().disconnect();
