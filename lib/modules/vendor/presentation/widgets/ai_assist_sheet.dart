@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/services/ai_status.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/gr_ui.dart';
 import '../../data/listing_service.dart';
@@ -243,6 +244,13 @@ class _AiAssistSheetState extends State<_AiAssistSheet>
       HapticFeedback.mediumImpact();
       _rowsIn.forward(from: 0);
     } on ApiException catch (e) {
+      if (const {
+        'AI_NOT_CONFIGURED',
+        'AI_KEY_INVALID',
+        'AI_OUT_OF_CREDIT',
+      }.contains(e.code)) {
+        AiStatus.markOffline();
+      }
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
       if (mounted) {

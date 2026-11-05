@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/services/ai_status.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/gr_ui.dart';
 import '../../data/listing_service.dart';
@@ -82,7 +83,12 @@ class _AddListingScreenState extends State<AddListingScreen> {
     ListingCatalog.refresh().then((changed) {
       if (changed && mounted) setState(() {});
     });
+    AiStatus.available().then((ok) {
+      if (!ok && mounted) setState(() => _aiOffline = true);
+    });
   }
+
+  bool _aiOffline = false;
 
   @override
   void dispose() {
@@ -100,6 +106,10 @@ class _AddListingScreenState extends State<AddListingScreen> {
 
   Future<void> _openAssist(AssistMode mode) async {
     FocusScope.of(context).unfocus();
+    if (_aiOffline) {
+      showGrSnack(context, AiStatus.offlineMessage, error: true);
+      return;
+    }
     final result = await showAiAssistSheet(
       context,
       mode: mode,
@@ -520,56 +530,59 @@ class _AddListingScreenState extends State<AddListingScreen> {
       bool ai = false,
     }) {
       return Expanded(
-        child: _PressScale(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
-            decoration: BoxDecoration(
-              color: ai
-                  ? AppTheme.accent.withValues(alpha: 0.06)
-                  : Colors.white.withValues(alpha: 0.02),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
+        child: Opacity(
+          opacity: ai && _aiOffline ? 0.45 : 1,
+          child: _PressScale(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+              decoration: BoxDecoration(
                 color: ai
-                    ? AppTheme.accent.withValues(alpha: 0.3)
-                    : AppTheme.border,
+                    ? AppTheme.accent.withValues(alpha: 0.06)
+                    : Colors.white.withValues(alpha: 0.02),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: ai
+                      ? AppTheme.accent.withValues(alpha: 0.3)
+                      : AppTheme.border,
+                ),
               ),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: ai ? AppTheme.accent : Colors.black38,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: ai ? AppTheme.accent : AppTheme.border,
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: ai ? AppTheme.accent : Colors.black38,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: ai ? AppTheme.accent : AppTheme.border,
+                      ),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 20,
+                      color: ai ? Colors.black : Colors.white70,
                     ),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 20,
-                    color: ai ? Colors.black : Colors.white70,
+                  const SizedBox(height: 10),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  sub,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppTheme.textSubtle,
-                    fontSize: 10,
-                    height: 1.3,
+                  const SizedBox(height: 2),
+                  Text(
+                    sub,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppTheme.textSubtle,
+                      fontSize: 10,
+                      height: 1.3,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -599,7 +612,11 @@ class _AddListingScreenState extends State<AddListingScreen> {
               card(
                 Icons.document_scanner_outlined,
                 'Scan photos',
-                _isVehicle ? 'Car, VIN, papers' : 'Part, box, label',
+                _aiOffline
+                    ? 'Offline right now'
+                    : _isVehicle
+                    ? 'Car, VIN, papers'
+                    : 'Part, box, label',
                 () => _openAssist(AssistMode.scan),
                 ai: true,
               ),
@@ -607,7 +624,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
               card(
                 Icons.mic_none,
                 'Speak it',
-                'Describe it out loud',
+                _aiOffline ? 'Offline right now' : 'Describe it out loud',
                 () => _openAssist(AssistMode.voice),
                 ai: true,
               ),

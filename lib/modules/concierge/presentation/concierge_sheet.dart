@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/product_model.dart';
+import '../../../core/services/ai_status.dart';
 import '../../../core/services/concierge_service.dart';
 import '../../../core/theme/theme.dart';
 
@@ -9,7 +10,10 @@ class ConciergeSheet extends StatefulWidget {
   final List<ProductModel> compareItems;
   const ConciergeSheet({super.key, this.compareItems = const []});
 
-  static Future<void> show(BuildContext context, {List<ProductModel> compareItems = const []}) {
+  static Future<void> show(
+    BuildContext context, {
+    List<ProductModel> compareItems = const [],
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -31,7 +35,8 @@ class _LocalMessage {
 }
 
 class _ConciergeSheetState extends State<ConciergeSheet> {
-  static const _errorText = "I'm having trouble responding right now. Please try again in a moment.";
+  static const _errorText =
+      "I'm having trouble responding right now. Please try again in a moment.";
 
   final _input = TextEditingController();
   final _scroll = ScrollController();
@@ -39,8 +44,17 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
   final List<ConciergeMessage> _history = [];
   String _streaming = '';
   bool _thinking = false;
+  bool _offline = false;
 
   bool get _isCompare => widget.compareItems.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    AiStatus.available().then((ok) {
+      if (!ok && mounted) setState(() => _offline = true);
+    });
+  }
 
   @override
   void dispose() {
@@ -69,20 +83,8 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
     });
   }
 
-  List<Map<String, dynamic>> get _compareData => [
-        for (final c in widget.compareItems)
-          {
-            'name': c.name,
-            'make': c.make,
-            'price': c.priceValue,
-            'specs': {
-              'horsepower': c.specs?.horsepower,
-              'topSpeed': c.specs?.topSpeed,
-              '0_100': c.specs?.acceleration,
-              'torque': c.specs?.torque,
-            },
-          },
-      ];
+  // The server looks up the real specs and prices; send only the IDs.
+  List<String> get _compareIds => [for (final c in widget.compareItems) c.id];
 
   Future<void> _send() async {
     final text = _input.text.trim();
@@ -99,7 +101,10 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
 
     try {
       var full = '';
-      await for (final partial in ConciergeService().ask(_history, compareData: _compareData)) {
+      await for (final partial in ConciergeService().ask(
+        _history,
+        compareIds: _compareIds,
+      )) {
         full = partial;
         if (!mounted) return;
         setState(() => _streaming = partial);
@@ -109,17 +114,30 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
       if (!mounted) return;
       setState(() {
         if (reply.isEmpty) {
-          _messages.add(const _LocalMessage('assistant', _errorText, isError: true));
+          _messages.add(
+            const _LocalMessage('assistant', _errorText, isError: true),
+          );
           _history.removeLast();
         } else {
           _messages.add(_LocalMessage('assistant', reply));
           _history.add(ConciergeMessage('assistant', reply));
         }
       });
+    } on ConciergeException catch (e) {
+      if (!mounted) return;
+      if (e.offline) AiStatus.markOffline();
+      setState(() {
+        // The server's message says what's wrong: offline, limit reached, or try again.
+        _messages.add(_LocalMessage('assistant', e.message, isError: true));
+        if (e.offline) _offline = true;
+        _history.removeLast();
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _messages.add(const _LocalMessage('assistant', _errorText, isError: true));
+        _messages.add(
+          const _LocalMessage('assistant', _errorText, isError: true),
+        );
         // Drop the failed user turn so it isn't re-sent.
         _history.removeLast();
       });
@@ -173,7 +191,10 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
             width: 36,
             height: 4,
             margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           Row(
             children: [
@@ -184,7 +205,11 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
                   color: AppTheme.accent.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.smart_toy_outlined, color: AppTheme.accent, size: 20),
+                child: const Icon(
+                  Icons.smart_toy_outlined,
+                  color: AppTheme.accent,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -193,7 +218,11 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
                   children: [
                     Text(
                       _isCompare ? 'Compare Concierge' : 'GreenRev Concierge',
-                      style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.0),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        height: 1.0,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -210,12 +239,19 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
               IconButton(
                 tooltip: 'Clear Chat',
                 onPressed: _clear,
-                icon: Icon(Icons.delete_outline, size: 18, color: Colors.white.withValues(alpha: 0.4)),
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: Colors.white.withValues(alpha: 0.4),
+                ),
               ),
               IconButton(
                 tooltip: 'Close',
                 onPressed: () => Navigator.of(context).pop(),
-                icon: Icon(Icons.keyboard_arrow_down, color: Colors.white.withValues(alpha: 0.4)),
+                icon: Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.white.withValues(alpha: 0.4),
+                ),
               ),
             ],
           ),
@@ -234,7 +270,11 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.auto_awesome, color: AppTheme.accent, size: 30),
+                const Icon(
+                  Icons.auto_awesome,
+                  color: AppTheme.accent,
+                  size: 30,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   _isCompare ? 'Ask about these machines' : 'Ask the concierge',
@@ -246,7 +286,10 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
                       ? 'I can analyze their specs and help you decide.'
                       : 'Ask about vehicles in the showroom, parts, or expert care.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppTheme.textSubtle, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppTheme.textSubtle,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -268,72 +311,123 @@ class _ConciergeSheetState extends State<ConciergeSheet> {
           final m = _messages[i];
           return _Bubble(role: m.role, content: m.content, isError: m.isError);
         }
-        if (_streaming.isNotEmpty) return _Bubble(role: 'assistant', content: _streaming);
+        if (_streaming.isNotEmpty) {
+          return _Bubble(role: 'assistant', content: _streaming);
+        }
         return const _ThinkingBubble();
       },
     );
   }
 
   Widget _buildInput() {
-    final placeholder = widget.compareItems.length == 2
+    final placeholder = _offline
+        ? 'Concierge offline'
+        : widget.compareItems.length == 2
         ? 'Ask about the ${widget.compareItems[0].name} vs ${widget.compareItems[1].name}...'
         : 'Ask me about any vehicle...';
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        12,
+        16,
+        12 + MediaQuery.of(context).padding.bottom,
+      ),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.4),
         border: Border(top: BorderSide(color: AppTheme.hairline)),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _input,
-              onSubmitted: (_) => _send(),
-              textInputAction: TextInputAction.send,
-              cursorColor: AppTheme.accent,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: InputDecoration(
-                hintText: placeholder,
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 13),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(999),
-                  borderSide: BorderSide(color: AppTheme.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(999),
-                  borderSide: BorderSide(color: AppTheme.accent.withValues(alpha: 0.5)),
+          if (_offline)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.goldAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.goldAccent.withValues(alpha: 0.3),
                 ),
               ),
+              child: const Text(
+                'The AI concierge is offline right now. You can still compare the specs.',
+                style: TextStyle(color: Color(0xFFE9D9A6), fontSize: 12),
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          ListenableBuilder(
-            listenable: _input,
-            builder: (context, _) {
-              final enabled = !_thinking && _input.text.trim().isNotEmpty;
-              return GestureDetector(
-                onTap: enabled ? _send : null,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 150),
-                  opacity: enabled ? 1 : 0.4,
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle),
-                    child: _thinking
-                        ? const Padding(
-                            padding: EdgeInsets.all(15),
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                          )
-                        : const Icon(Icons.send_rounded, color: Colors.black, size: 18),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _input,
+                  enabled: !_offline,
+                  onSubmitted: (_) => _send(),
+                  textInputAction: TextInputAction.send,
+                  cursorColor: AppTheme.accent,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: placeholder,
+                    hintStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      fontSize: 13,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.05),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppTheme.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(
+                        color: AppTheme.accent.withValues(alpha: 0.5),
+                      ),
+                    ),
                   ),
                 ),
-              );
-            },
+              ),
+              const SizedBox(width: 10),
+              ListenableBuilder(
+                listenable: _input,
+                builder: (context, _) {
+                  final enabled =
+                      !_thinking && !_offline && _input.text.trim().isNotEmpty;
+                  return GestureDetector(
+                    onTap: enabled ? _send : null,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 150),
+                      opacity: enabled ? 1 : 0.4,
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: const BoxDecoration(
+                          color: AppTheme.accent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: _thinking
+                            ? const Padding(
+                                padding: EdgeInsets.all(15),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.send_rounded,
+                                color: Colors.black,
+                                size: 18,
+                              ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -345,7 +439,11 @@ class _Bubble extends StatelessWidget {
   final String role;
   final String content;
   final bool isError;
-  const _Bubble({required this.role, required this.content, this.isError = false});
+  const _Bubble({
+    required this.role,
+    required this.content,
+    this.isError = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -357,7 +455,9 @@ class _Bubble extends StatelessWidget {
       height: 32,
       margin: const EdgeInsets.only(top: 4),
       decoration: BoxDecoration(
-        color: isUser ? Colors.white.withValues(alpha: 0.1) : AppTheme.accent.withValues(alpha: 0.2),
+        color: isUser
+            ? Colors.white.withValues(alpha: 0.1)
+            : AppTheme.accent.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Icon(
@@ -374,9 +474,11 @@ class _Bubble extends StatelessWidget {
         color: isUser
             ? AppTheme.accent
             : isError
-                ? Colors.red.withValues(alpha: 0.1)
-                : Colors.white.withValues(alpha: 0.05),
-        border: isError ? Border.all(color: Colors.red.withValues(alpha: 0.2)) : null,
+            ? Colors.red.withValues(alpha: 0.1)
+            : Colors.white.withValues(alpha: 0.05),
+        border: isError
+            ? Border.all(color: Colors.red.withValues(alpha: 0.2))
+            : null,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(isUser ? 18 : 0),
           topRight: Radius.circular(isUser ? 0 : 18),
@@ -385,14 +487,30 @@ class _Bubble extends StatelessWidget {
         ),
       ),
       child: isUser
-          ? Text(content, style: const TextStyle(color: Colors.black, fontSize: 14, height: 1.45))
+          ? Text(
+              content,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 14,
+                height: 1.45,
+              ),
+            )
           : isError
-              ? Text(content, style: TextStyle(color: Colors.red.shade200, fontSize: 14, height: 1.45))
-              : _MiniMarkdown(content),
+          ? Text(
+              content,
+              style: TextStyle(
+                color: Colors.red.shade200,
+                fontSize: 14,
+                height: 1.45,
+              ),
+            )
+          : _MiniMarkdown(content),
     );
 
     return Row(
-      mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isUser
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: isUser
           ? [bubble, const SizedBox(width: 10), avatar]
@@ -413,10 +531,15 @@ class _MiniMarkdown extends StatelessWidget {
     for (var i = 0; i < parts.length; i++) {
       if (parts[i].isNotEmpty) spans.add(TextSpan(text: parts[i]));
       if (i < matches.length) {
-        spans.add(TextSpan(
-          text: matches[i].group(1),
-          style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold),
-        ));
+        spans.add(
+          TextSpan(
+            text: matches[i].group(1),
+            style: const TextStyle(
+              color: AppTheme.accent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
       }
     }
     return spans;
@@ -424,7 +547,11 @@ class _MiniMarkdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const style = TextStyle(color: Color(0xE6FFFFFF), fontSize: 14, height: 1.5);
+    const style = TextStyle(
+      color: Color(0xE6FFFFFF),
+      fontSize: 14,
+      height: 1.5,
+    );
     final children = <Widget>[];
     final lines = content.split('\n');
     for (var i = 0; i < lines.length; i++) {
@@ -436,29 +563,47 @@ class _MiniMarkdown extends StatelessWidget {
       }
       final isBullet = trimmed.startsWith('* ') || trimmed.startsWith('- ');
       if (isBullet) {
-        children.add(Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                margin: const EdgeInsets.only(top: 8, right: 10),
-                decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle),
-              ),
-              Expanded(child: Text.rich(TextSpan(style: style, children: _inline(trimmed.substring(2))))),
-            ],
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 2, bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.only(top: 8, right: 10),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      style: style,
+                      children: _inline(trimmed.substring(2)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ));
+        );
       } else {
-        children.add(Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text.rich(TextSpan(style: style, children: _inline(line))),
-        ));
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text.rich(TextSpan(style: style, children: _inline(line))),
+          ),
+        );
       }
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: children);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: children,
+    );
   }
 }
 
@@ -469,8 +614,12 @@ class _ThinkingBubble extends StatefulWidget {
   State<_ThinkingBubble> createState() => _ThinkingBubbleState();
 }
 
-class _ThinkingBubbleState extends State<_ThinkingBubble> with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat();
+class _ThinkingBubbleState extends State<_ThinkingBubble>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat();
 
   @override
   void dispose() {
@@ -491,7 +640,11 @@ class _ThinkingBubbleState extends State<_ThinkingBubble> with SingleTickerProvi
             color: AppTheme.accent.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.smart_toy_outlined, size: 16, color: AppTheme.accent),
+          child: const Icon(
+            Icons.smart_toy_outlined,
+            size: 16,
+            color: AppTheme.accent,
+          ),
         ),
         const SizedBox(width: 10),
         Container(
@@ -512,11 +665,20 @@ class _ThinkingBubbleState extends State<_ThinkingBubble> with SingleTickerProvi
                 for (var i = 0; i < 3; i++) ...[
                   if (i > 0) const SizedBox(width: 6),
                   Opacity(
-                    opacity: 0.4 + 0.6 * (1 - ((_controller.value * 3 - i) % 3 - 0.5).abs().clamp(0, 1)),
+                    opacity:
+                        0.4 +
+                        0.6 *
+                            (1 -
+                                ((_controller.value * 3 - i) % 3 - 0.5)
+                                    .abs()
+                                    .clamp(0, 1)),
                     child: Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(color: Colors.white70, shape: BoxShape.circle),
+                      decoration: const BoxDecoration(
+                        color: Colors.white70,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
                 ],
