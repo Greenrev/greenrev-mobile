@@ -17,7 +17,7 @@ void main() {
 
   test('deleteAccount calls DELETE /profile and clears the session', () async {
     final requests = <String>[];
-    ApiClient()..configureForTesting(
+    ApiClient().configureForTesting(
       client: MockClient((req) async {
         requests.add('${req.method} ${req.url.path}');
         return json(200, {
@@ -39,7 +39,7 @@ void main() {
   });
 
   test('a failed deletion keeps the user signed in', () async {
-    ApiClient()..configureForTesting(
+    ApiClient().configureForTesting(
       client: MockClient(
         (_) async => json(500, {
           'success': false,

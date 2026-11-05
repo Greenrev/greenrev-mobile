@@ -1,4 +1,5 @@
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:flutter/foundation.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 // import '../network/api_client.dart';
 import '../config/env.dart';
 import 'notification_service.dart';
@@ -8,21 +9,21 @@ class SocketService {
   static final SocketService _instance = SocketService._internal();
   factory SocketService() => _instance;
 
-  IO.Socket? socket;
+  io.Socket? socket;
 
   SocketService._internal();
 
   void connect(String token) {
     if (socket != null && socket!.connected) return;
 
-    socket = IO.io(Env.apiBaseUrl, <String, dynamic>{
+    socket = io.io(Env.apiBaseUrl, <String, dynamic>{
       'transports': ['websocket'],
       'auth': {'token': token},
       'autoConnect': true,
     });
 
     socket!.onConnect((_) {
-      print('Connected to Socket.IO server');
+      debugPrint('Connected to Socket.IO server');
     });
 
     socket!.on('notification', (data) {
@@ -40,7 +41,7 @@ class SocketService {
     });
 
     socket!.onDisconnect((_) {
-      print('Disconnected from Socket.IO server');
+      debugPrint('Disconnected from Socket.IO server');
     });
   }
 

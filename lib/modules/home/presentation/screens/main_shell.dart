@@ -237,12 +237,13 @@ class _MainShellState extends State<MainShell> {
     if (auth.sessionExpired) {
       auth.acknowledgeSessionExpired();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted)
+        if (mounted) {
           showGrSnack(
             context,
             'Your session has expired. Please sign in again.',
             error: true,
           );
+        }
       });
     }
 
@@ -323,8 +324,9 @@ class _MainShellState extends State<MainShell> {
       Uri.parse('${Env.siteBaseUrl}$path'),
       mode: LaunchMode.externalApplication,
     );
-    if (!ok && mounted)
+    if (!ok && mounted) {
       showGrSnack(context, 'Could not open the website.', error: true);
+    }
   }
 
   void _showAccountSheet(
